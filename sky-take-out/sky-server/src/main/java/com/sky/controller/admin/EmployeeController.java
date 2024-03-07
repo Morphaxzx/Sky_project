@@ -66,11 +66,7 @@ public class EmployeeController {
         return Result.success(employeeLoginVO);
     }
 
-    /**
-     * 退出
-     *
-     * @return
-     */
+
     @ApiOperation("员工退出方法")
     @PostMapping("/logout")
     public Result<String> logout() {
@@ -78,11 +74,7 @@ public class EmployeeController {
     }
 
 
-    /**
-     * 新增员工
-     * @param employeeDTO
-     * @return
-     */
+
     @ApiOperation("新增员工方法")
     @PostMapping
     public Result AddEmp(@RequestBody EmployeeDTO employeeDTO)
@@ -98,5 +90,31 @@ public class EmployeeController {
         PageResult  re = employeeService.page(employeePageQueryDTO);
         return Result.success(re);
     }
+
+    @ApiOperation("启用/禁用员工账号")
+    @PostMapping("/status/{status}")
+    public Result StartOrStop(@PathVariable Integer status,Long id)
+    {
+        employeeService.ChangeStatus(status,id);
+        return Result.success();
+    }
+
+
+    @ApiOperation("根据id查询员工")
+    @GetMapping ("/{id}")
+    public Result<Employee> GetByID(@PathVariable Long id)
+    {
+        Employee e = employeeService.getByID(id);
+        return Result.success(e);
+    }
+
+    @ApiOperation("修改员工信息")
+    @PutMapping
+    public Result update(@RequestBody EmployeeDTO employeeDTO)
+    {
+        employeeService.update(employeeDTO);
+        return Result.success();
+    }
+
 
 }

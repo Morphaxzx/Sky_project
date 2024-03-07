@@ -92,4 +92,31 @@ public class EmployeeServiceImpl implements EmployeeService {
         return new PageResult(total,records);
 
     }
+
+    @Override
+    public void ChangeStatus(Integer status, Long id) {
+        Employee e = Employee.builder()
+                .id(id)
+                .status(status)
+                .build();
+        employeeMapper.update(e);
+
+    }
+
+    @Override
+    public Employee getByID(Long id) {
+        //这里e得到了数据库中的employee,但是传给前端的密码进行了隐藏，这里并不会改变数据库中的数据
+        Employee e = employeeMapper.selectEmpByID(id);
+        e.setPassword("****");
+        return e;
+    }
+
+    @Override
+    public void update(EmployeeDTO employeeDTO) {
+        Employee e = new Employee();
+        BeanUtils.copyProperties(employeeDTO,e);
+        e.setUpdateTime(LocalDateTime.now());
+        e.setUpdateUser(BaseContext.getCurrentId());
+        employeeMapper.update(e);
+    }
 }
