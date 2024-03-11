@@ -12,3 +12,7 @@ sky:
     accessKeyId: LTAI5tQdfRvqdpxFXyDFR5W9
     accessKeySecret: nigVrirDVG63h0jESpa1oJTCL3ZzVI
     bucketName: web-tlias-xzx
+
+  redis:
+    host: localhost
+    port: 6379

@@ -3,6 +3,7 @@ package com.sky.service;
 
 import com.sky.dto.DishDTO;
 import com.sky.dto.DishPageQueryDTO;
+import com.sky.entity.Dish;
 import com.sky.result.PageResult;
 import com.sky.vo.DishVO;
 import org.springframework.stereotype.Service;
@@ -24,4 +25,6 @@ public interface DishService {
     DishVO GetDishById(long id);
 
     void update(DishDTO dishDTO);
+
+    List<Dish> SelectDishbyCategory(Long id);
 }
