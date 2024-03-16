@@ -21,6 +21,7 @@ import com.sky.result.PageResult;
 import com.sky.service.AddressBookService;
 import com.sky.service.OrderService;
 import com.sky.vo.OrderSubmitVO;
+import com.sky.vo.OrderVO;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -42,6 +43,7 @@ public class OrderServiceImpl implements OrderService {
     private OrderMapper orderMapper;
     @Autowired
     private OrderDetailMapper orderDetailMapper;
+
 
 
     @Transactional
@@ -100,6 +102,78 @@ public class OrderServiceImpl implements OrderService {
     public PageResult page(OrdersPageQueryDTO ordersPageQueryDTO) {
 
         PageHelper.startPage(ordersPageQueryDTO.getPage(),ordersPageQueryDTO.getPageSize());
-        Page<Orders> orders = orderMapper.pageQuery(ordersPageQueryDTO);
+        ordersPageQueryDTO.setUserId(BaseContext.getCurrentId());
+        Page<Orders> page = orderMapper.pageQuery(ordersPageQueryDTO);
+        //这里返回的不是Orders,而是OrderVO,因为orderdetails也要返回
+        List<OrderVO> list= new ArrayList<>();
+        if(page!=null &&page.getTotal()>0)
+        {
+            for (Orders orders : page) {
+                OrderVO orderVO =new OrderVO();
+                BeanUtils.copyProperties(orders,orderVO);
+                List<OrderDetail> details = orderDetailMapper.queryByOrderId(orders.getId());
+                orderVO.setOrderDetailList(details);
+                list.add(orderVO);
+            }
+
+        }
+
+        return new PageResult(page.getTotal(),list);
+    }
+
+
+    @Override
+    public OrderVO GetOrderVObyOrderId(long id) {
+
+        List<OrderDetail> details = orderDetailMapper.queryByOrderId(id);
+
+
+        Orders orders = new Orders();
+        orders.setUserId(BaseContext.getCurrentId());
+        orders.setId(id);
+        Orders Fullorder =orderMapper.queryByidandUserId(orders);
+
+        OrderVO re = new OrderVO();
+        BeanUtils.copyProperties(Fullorder,re);
+        re.setOrderDetailList(details);
+
+        return re;
+
+    }
+
+    @Override
+    public void cancel(long id) {
+        Orders my_order = orderMapper.queryByid(id);
+
+        if (my_order==null)
+            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        Integer status = my_order.getStatus();
+        if (status>2)
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        if(status==Orders.TO_BE_CONFIRMED)
+        {
+            //退款操作
+        }
+        my_order.setStatus(Orders.CANCELLED);
+        my_order.setCancelReason("用户取消");
+        my_order.setCancelTime(LocalDateTime.now());
+        orderMapper.update(my_order);
+    }
+
+    @Override
+    public void repetition(long id) {
+        Orders orders = orderMapper.queryByid(id);
+        List<OrderDetail> details = orderDetailMapper.queryByOrderId(orders.getId());
+        List<ShoppingCart> shoppingCarts =new ArrayList<>();
+        for (OrderDetail detail : details) {
+            ShoppingCart temp = new ShoppingCart();
+            BeanUtils.copyProperties(detail,temp);
+            temp.setUserId(BaseContext.getCurrentId());
+            temp.setCreateTime(LocalDateTime.now());
+            shoppingCarts.add(temp);
+
+        }
+        shoppingCartMapper.insertBatch(shoppingCarts);
+
     }
 }

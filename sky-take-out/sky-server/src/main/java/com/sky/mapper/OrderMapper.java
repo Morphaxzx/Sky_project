@@ -3,9 +3,7 @@ package com.sky.mapper;
 import com.github.pagehelper.Page;
 import com.sky.dto.OrdersPageQueryDTO;
 import com.sky.entity.Orders;
-import org.apache.ibatis.annotations.Insert;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Options;
+import org.apache.ibatis.annotations.*;
 
 @Mapper
 public interface OrderMapper {
@@ -26,4 +24,13 @@ public interface OrderMapper {
 
 
     Page<Orders> pageQuery(OrdersPageQueryDTO ordersPageQueryDTO);
+
+    @Select("select *from orders where id=#{id} and user_id=#{userId}")
+    Orders queryByidandUserId(Orders orders);
+
+
+    void update(Orders myOrder);
+
+    @Select("select *from orders where id=#{id}")
+    Orders queryByid(long id);
 }
