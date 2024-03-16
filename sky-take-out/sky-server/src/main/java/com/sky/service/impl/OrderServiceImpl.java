@@ -4,12 +4,8 @@ import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import com.sky.constant.MessageConstant;
 import com.sky.context.BaseContext;
-import com.sky.dto.OrdersPageQueryDTO;
-import com.sky.dto.OrdersSubmitDTO;
-import com.sky.entity.AddressBook;
-import com.sky.entity.OrderDetail;
-import com.sky.entity.Orders;
-import com.sky.entity.ShoppingCart;
+import com.sky.dto.*;
+import com.sky.entity.*;
 import com.sky.exception.AddressBookBusinessException;
 import com.sky.exception.OrderBusinessException;
 import com.sky.exception.ShoppingCartBusinessException;
@@ -18,18 +14,26 @@ import com.sky.mapper.OrderDetailMapper;
 import com.sky.mapper.OrderMapper;
 import com.sky.mapper.ShoppingCartMapper;
 import com.sky.result.PageResult;
+import com.sky.result.Result;
 import com.sky.service.AddressBookService;
 import com.sky.service.OrderService;
+import com.sky.vo.DishVO;
+import com.sky.vo.OrderStatisticsVO;
 import com.sky.vo.OrderSubmitVO;
 import com.sky.vo.OrderVO;
+import io.swagger.annotations.ApiOperation;
+import org.apache.commons.collections4.Get;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class OrderServiceImpl implements OrderService {
@@ -127,11 +131,7 @@ public class OrderServiceImpl implements OrderService {
 
         List<OrderDetail> details = orderDetailMapper.queryByOrderId(id);
 
-
-        Orders orders = new Orders();
-        orders.setUserId(BaseContext.getCurrentId());
-        orders.setId(id);
-        Orders Fullorder =orderMapper.queryByidandUserId(orders);
+        Orders Fullorder =orderMapper.queryByid(id);
 
         OrderVO re = new OrderVO();
         BeanUtils.copyProperties(Fullorder,re);
@@ -175,5 +175,123 @@ public class OrderServiceImpl implements OrderService {
         }
         shoppingCartMapper.insertBatch(shoppingCarts);
 
+    }
+
+    @Override
+    public PageResult conditionSearch(OrdersPageQueryDTO ordersPageQueryDTO) {
+        PageHelper.startPage(ordersPageQueryDTO.getPage(),ordersPageQueryDTO.getPageSize());
+        Page<Orders> ordersPage = orderMapper.pageQuery(ordersPageQueryDTO);
+        List<OrderVO> list = GetOrderVOList(ordersPage);
+        return new PageResult(ordersPage.getTotal(),list);
+    }
+
+    private List<OrderVO> GetOrderVOList(Page<Orders> ordersPage)
+    {
+        List<OrderVO> list= new ArrayList<>();
+        for (Orders orders : ordersPage) {
+            OrderVO orderVO = new OrderVO();
+            List<OrderDetail> details = orderDetailMapper.queryByOrderId(orders.getId());
+            BeanUtils.copyProperties(orders,orderVO);
+            orderVO.setOrderDetailList(details);
+            orderVO.setOrderDishes(GetOrderDishesStr(orders));
+            list.add(orderVO);
+        }
+        return list;
+    }
+    private String GetOrderDishesStr(Orders orders)
+    {
+        List<OrderDetail> details = orderDetailMapper.queryByOrderId(orders.getId());
+        List<String> OrderDishesList =  details.stream().map(x->{
+            String orderDish = x.getName() + "*" + x.getNumber()+";";
+            return orderDish;
+        }).collect(Collectors.toList());
+
+        return String.join("",OrderDishesList);
+    }
+
+
+    @Override
+    public OrderStatisticsVO statistics() {
+        Integer TobeConfirmed = orderMapper.countStatus(Orders.TO_BE_CONFIRMED);
+        Integer Confirmed = orderMapper.countStatus(Orders.CONFIRMED);
+        Integer DeiveryinProgress = orderMapper.countStatus(Orders.DELIVERY_IN_PROGRESS);
+
+        OrderStatisticsVO re = OrderStatisticsVO.builder().toBeConfirmed(TobeConfirmed)
+                .confirmed(Confirmed).deliveryInProgress(DeiveryinProgress)
+                .build();
+        return re;
+
+
+    }
+
+    /**
+     * 接单
+     * @param ordersConfirmDTO
+     */
+    @Override
+    public void confirm(OrdersConfirmDTO ordersConfirmDTO) {
+        Orders orders = Orders.builder()
+                .id(ordersConfirmDTO.getId())
+                .status(Orders.CONFIRMED)
+                .build();
+
+        orderMapper.update(orders);
+    }
+
+    /**
+     * 拒单
+     * @param ordersRejectionDTO
+     */
+    @Override
+    public void rejection(OrdersRejectionDTO ordersRejectionDTO) {
+        Orders order = orderMapper.queryByid(ordersRejectionDTO.getId());
+        if(order==null || !order.getStatus().equals(Orders.TO_BE_CONFIRMED))
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+
+        if(order.getPayStatus()==Orders.PAID)
+        {
+            //退款
+        }
+
+        order.setRejectionReason(ordersRejectionDTO.getRejectionReason());
+        order.setCancelTime(LocalDateTime.now());
+        order.setStatus(Orders.CANCELLED);
+        orderMapper.update(order);
+    }
+
+    @Override
+    public void adminCancel(OrdersCancelDTO ordersCancelDTO) {
+        Orders order = orderMapper.queryByid(ordersCancelDTO.getId());
+        if(order.getPayStatus()==Orders.PAID)
+        {
+            //退款
+        }
+
+        order.setCancelReason(ordersCancelDTO.getCancelReason());
+        order.setCancelTime(LocalDateTime.now());
+        order.setStatus(Orders.CANCELLED);
+        orderMapper.update(order);
+    }
+
+
+    @Override
+    public void delivery(Long id) {
+        Orders order = orderMapper.queryByid(id);
+        if(order==null || !order.getStatus().equals(Orders.CONFIRMED))
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+
+        order.setStatus(Orders.DELIVERY_IN_PROGRESS);
+        orderMapper.update(order);
+    }
+
+    @Override
+    public void complete(Long id) {
+        Orders order = orderMapper.queryByid(id);
+        if(order==null || !order.getStatus().equals(Orders.DELIVERY_IN_PROGRESS))
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+
+        order.setStatus(Orders.COMPLETED);
+        order.setDeliveryTime(LocalDateTime.now());
+        orderMapper.update(order);
     }
 }
