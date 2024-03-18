@@ -1,14 +1,13 @@
 package com.sky.controller.user;
 
 
-import com.sky.dto.DishPageQueryDTO;
-import com.sky.dto.OrdersPageQueryDTO;
-import com.sky.dto.OrdersSubmitDTO;
+import com.sky.dto.*;
 import com.sky.entity.Category;
 import com.sky.result.PageResult;
 import com.sky.result.Result;
 import com.sky.service.OrderService;
 import com.sky.vo.DishVO;
+import com.sky.vo.OrderPaymentVO;
 import com.sky.vo.OrderSubmitVO;
 import com.sky.vo.OrderVO;
 import io.swagger.annotations.Api;
@@ -73,4 +72,24 @@ public class OrderController {
         orderService.repetition(id);
         return Result.success();
     }
+
+
+
+    @PutMapping("/payment")
+    @ApiOperation("虚假订单支付")
+    public Result<OrderPaymentVO> payment(@RequestBody OrdersPaymentDTO ordersPaymentDTO) {
+        log.info("虚假订单支付");
+        OrderPaymentVO re = orderService.payment(ordersPaymentDTO);
+        return Result.success(re);
+    }
+
+
+    @GetMapping("/reminder/{id}")
+    @ApiOperation("客户催单")
+    public Result reminder (@PathVariable long id){
+        orderService.reminder(id);
+        return Result.success();
+
+    }
+
 }
