@@ -6,6 +6,8 @@ import com.sky.entity.User;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 
+import java.util.HashMap;
+
 @Mapper
 public interface UserLoginMapper {
 
@@ -15,4 +17,6 @@ public interface UserLoginMapper {
 
 
     void insert(User user);
+
+    Integer queryUserByTime(HashMap map);
 }
