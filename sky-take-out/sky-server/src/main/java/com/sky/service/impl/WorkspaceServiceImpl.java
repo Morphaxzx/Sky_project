@@ -2,10 +2,8 @@ package com.sky.service.impl;
 
 import com.sky.constant.StatusConstant;
 import com.sky.entity.Orders;
-import com.sky.mapper.DishMapper;
-import com.sky.mapper.OrderMapper;
-import com.sky.mapper.SetmealMapper;
-import com.sky.mapper.UserMapper;
+import com.sky.mapper.*;
+import com.sky.mapper.UserLoginMapper;
 import com.sky.service.WorkspaceService;
 import com.sky.vo.BusinessDataVO;
 import com.sky.vo.DishOverViewVO;
@@ -26,11 +24,13 @@ public class WorkspaceServiceImpl implements WorkspaceService {
     @Autowired
     private OrderMapper orderMapper;
     @Autowired
-    private UserMapper userMapper;
+    private UserLoginMapper userMapper;
     @Autowired
     private DishMapper dishMapper;
     @Autowired
     private SetmealMapper setmealMapper;
+    @Autowired
+    private ReportMapper reportMapper;
 
     /**
      * 根据时间段统计营业数据
@@ -47,20 +47,20 @@ public class WorkspaceServiceImpl implements WorkspaceService {
          * 新增用户：当日新增用户的数量
          */
 
-        Map map = new HashMap();
-        map.put("begin",begin);
-        map.put("end",end);
+        HashMap map = new HashMap();
+        map.put("beginTime",begin);
+        map.put("endTime",end);
 
         //查询总订单数
-        Integer totalOrderCount = orderMapper.countByMap(map);
+        Integer totalOrderCount = reportMapper.queryOrderByTime(map);
 
         map.put("status", Orders.COMPLETED);
         //营业额
-        Double turnover = orderMapper.sumByMap(map);
+        Double turnover = reportMapper.queryAmoutByTime(map);
         turnover = turnover == null? 0.0 : turnover;
 
         //有效订单数
-        Integer validOrderCount = orderMapper.countByMap(map);
+        Integer validOrderCount = reportMapper.queryOrderByTime(map);
 
         Double unitPrice = 0.0;
 
@@ -73,7 +73,7 @@ public class WorkspaceServiceImpl implements WorkspaceService {
         }
 
         //新增用户数
-        Integer newUsers = userMapper.countByMap(map);
+        Integer newUsers = userMapper.queryUserByTime(map);
 
         return BusinessDataVO.builder()
                 .turnover(turnover)
@@ -91,28 +91,28 @@ public class WorkspaceServiceImpl implements WorkspaceService {
      * @return
      */
     public OrderOverViewVO getOrderOverView() {
-        Map map = new HashMap();
+        HashMap map = new HashMap();
         map.put("begin", LocalDateTime.now().with(LocalTime.MIN));
         map.put("status", Orders.TO_BE_CONFIRMED);
 
         //待接单
-        Integer waitingOrders = orderMapper.countByMap(map);
+        Integer waitingOrders = reportMapper.queryOrderByTime(map);
 
         //待派送
         map.put("status", Orders.CONFIRMED);
-        Integer deliveredOrders = orderMapper.countByMap(map);
+        Integer deliveredOrders = reportMapper.queryOrderByTime(map);
 
         //已完成
         map.put("status", Orders.COMPLETED);
-        Integer completedOrders = orderMapper.countByMap(map);
+        Integer completedOrders = reportMapper.queryOrderByTime(map);
 
         //已取消
         map.put("status", Orders.CANCELLED);
-        Integer cancelledOrders = orderMapper.countByMap(map);
+        Integer cancelledOrders = reportMapper.queryOrderByTime(map);
 
         //全部订单
         map.put("status", null);
-        Integer allOrders = orderMapper.countByMap(map);
+        Integer allOrders = reportMapper.queryOrderByTime(map);
 
         return OrderOverViewVO.builder()
                 .waitingOrders(waitingOrders)

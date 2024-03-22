@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletResponse;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
@@ -78,6 +80,15 @@ public class ReportController {
         log.info("top10");
         SalesTop10ReportVO res = reportService.GetTop10(begin,end);
         return Result.success(res);
+    }
+
+    @GetMapping("/export")
+    @ApiOperation("导出数据")
+    public void export(HttpServletResponse httpServletResponse)
+    {
+        log.info("导出数据");
+        reportService.export(httpServletResponse);
+
     }
 
 

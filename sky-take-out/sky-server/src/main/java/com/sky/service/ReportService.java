@@ -7,6 +7,7 @@ import com.sky.vo.TurnoverReportVO;
 import com.sky.vo.UserReportVO;
 import org.springframework.stereotype.Service;
 
+import javax.servlet.http.HttpServletResponse;
 import java.time.LocalDate;
 
 
@@ -18,4 +19,6 @@ public interface ReportService {
     OrderReportVO orderQuery(LocalDate begin, LocalDate end);
 
     SalesTop10ReportVO GetTop10(LocalDate begin, LocalDate end);
+
+    void export(HttpServletResponse httpServletResponse);
 }
